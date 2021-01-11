@@ -11,11 +11,11 @@ import (
 
 func addDepth(ob *OrderBook, prefix string, quantity decimal.Decimal) {
 	for i := 50; i < 100; i = i + 10 {
-		ob.ProcessLimitOrder(Buy, fmt.Sprintf("%sbuy-%d", prefix, i), quantity, decimal.New(int64(i), 0))
+		ob.ProcessLimitOrder(Buy, fmt.Sprintf("%sbuy-%d", prefix, i), quantity, decimal.New(int64(i), 0), true)
 	}
 
 	for i := 100; i < 150; i = i + 10 {
-		ob.ProcessLimitOrder(Sell, fmt.Sprintf("%ssell-%d", prefix, i), quantity, decimal.New(int64(i), 0))
+		ob.ProcessLimitOrder(Sell, fmt.Sprintf("%ssell-%d", prefix, i), quantity, decimal.New(int64(i), 0), true)
 	}
 
 	return
@@ -25,7 +25,7 @@ func TestLimitPlace(t *testing.T) {
 	ob := NewOrderBook()
 	quantity := decimal.New(2, 0)
 	for i := 50; i < 100; i = i + 10 {
-		done, partial, partialQty, err := ob.ProcessLimitOrder(Buy, fmt.Sprintf("buy-%d", i), quantity, decimal.New(int64(i), 0))
+		done, partial, partialQty, err := ob.ProcessLimitOrder(Buy, fmt.Sprintf("buy-%d", i), quantity, decimal.New(int64(i), 0), true)
 		if len(done) != 0 {
 			t.Fatal("OrderBook failed to process limit order (done is not empty)")
 		}
@@ -41,7 +41,7 @@ func TestLimitPlace(t *testing.T) {
 	}
 
 	for i := 100; i < 150; i = i + 10 {
-		done, partial, partialQty, err := ob.ProcessLimitOrder(Sell, fmt.Sprintf("sell-%d", i), quantity, decimal.New(int64(i), 0))
+		done, partial, partialQty, err := ob.ProcessLimitOrder(Sell, fmt.Sprintf("sell-%d", i), quantity, decimal.New(int64(i), 0), true)
 		if len(done) != 0 {
 			t.Fatal("OrderBook failed to process limit order (done is not empty)")
 		}
@@ -74,7 +74,7 @@ func TestLimitProcess(t *testing.T) {
 	ob := NewOrderBook()
 	addDepth(ob, "", decimal.New(2, 0))
 
-	done, partial, partialQty, err := ob.ProcessLimitOrder(Buy, "order-b100", decimal.New(1, 0), decimal.New(100, 0))
+	done, partial, partialQty, err := ob.ProcessLimitOrder(Buy, "order-b100", decimal.New(1, 0), decimal.New(100, 0), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestLimitProcess(t *testing.T) {
 
 	t.Log(ob)
 
-	done, partial, partialQty, err = ob.ProcessLimitOrder(Buy, "order-b150", decimal.New(10, 0), decimal.New(150, 0))
+	done, partial, partialQty, err = ob.ProcessLimitOrder(Buy, "order-b150", decimal.New(10, 0), decimal.New(150, 0), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,15 +116,15 @@ func TestLimitProcess(t *testing.T) {
 
 	t.Log(ob)
 
-	if _, _, _, err := ob.ProcessLimitOrder(Sell, "buy-70", decimal.New(11, 0), decimal.New(40, 0)); err == nil {
+	if _, _, _, err := ob.ProcessLimitOrder(Sell, "buy-70", decimal.New(11, 0), decimal.New(40, 0), true); err == nil {
 		t.Fatal("Can add existing order")
 	}
 
-	if _, _, _, err := ob.ProcessLimitOrder(Sell, "fake-70", decimal.New(0, 0), decimal.New(40, 0)); err == nil {
+	if _, _, _, err := ob.ProcessLimitOrder(Sell, "fake-70", decimal.New(0, 0), decimal.New(40, 0), true); err == nil {
 		t.Fatal("Can add empty quantity order")
 	}
 
-	if _, _, _, err := ob.ProcessLimitOrder(Sell, "fake-70", decimal.New(10, 0), decimal.New(0, 0)); err == nil {
+	if _, _, _, err := ob.ProcessLimitOrder(Sell, "fake-70", decimal.New(10, 0), decimal.New(0, 0), true); err == nil {
 		t.Fatal("Can add zero price")
 	}
 
@@ -132,7 +132,7 @@ func TestLimitProcess(t *testing.T) {
 		t.Fatal("Can cancel done order")
 	}
 
-	done, partial, partialQty, err = ob.ProcessLimitOrder(Sell, "order-s40", decimal.New(11, 0), decimal.New(40, 0))
+	done, partial, partialQty, err = ob.ProcessLimitOrder(Sell, "order-s40", decimal.New(11, 0), decimal.New(40, 0), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,11 +283,11 @@ func BenchmarkLimitOrder(b *testing.B) {
 	ob := NewOrderBook()
 	stopwatch := time.Now()
 	for i := 0; i < b.N; i++ {
-		addDepth(ob, "05-", decimal.New(10, 0))                                           // 10 ts
-		addDepth(ob, "10-", decimal.New(10, 0))                                           // 10 ts
-		addDepth(ob, "15-", decimal.New(10, 0))                                           // 10 ts
-		ob.ProcessLimitOrder(Buy, "order-b150", decimal.New(160, 0), decimal.New(150, 0)) // 1 ts
-		ob.ProcessMarketOrder(Sell, decimal.New(200, 0))                                  // 1 ts = total 32
+		addDepth(ob, "05-", decimal.New(10, 0))                                                 // 10 ts
+		addDepth(ob, "10-", decimal.New(10, 0))                                                 // 10 ts
+		addDepth(ob, "15-", decimal.New(10, 0))                                                 // 10 ts
+		ob.ProcessLimitOrder(Buy, "order-b150", decimal.New(160, 0), decimal.New(150, 0), true) // 1 ts
+		ob.ProcessMarketOrder(Sell, decimal.New(200, 0))                                        // 1 ts = total 32
 	}
 	elapsed := time.Since(stopwatch)
 	fmt.Printf("\n\nElapsed: %s\nTransactions per second (avg): %f\n", elapsed, float64(b.N*32)/elapsed.Seconds())

@@ -91,7 +91,7 @@ func (ob *OrderBook) ProcessMarketOrder(side Side, quantity decimal.Decimal) (do
 //                partial done and placed to the orderbook without full quantity - partial will contain
 //                your order with quantity to left
 //      partialQuantityProcessed - if partial order is not nil this result contains processed quatity from partial order
-func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, err error) {
+func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, price decimal.Decimal, proccess bool) (done []*Order, partial *Order, partialQuantityProcessed decimal.Decimal, err error) {
 	if _, ok := ob.orders[orderID]; ok {
 		return nil, nil, decimal.Zero, ErrOrderExists
 	}
@@ -124,14 +124,16 @@ func (ob *OrderBook) ProcessLimitOrder(side Side, orderID string, quantity, pric
 		iter = ob.bids.MaxPriceQueue
 	}
 
-	bestPrice := iter()
-	for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
-		ordersDone, partialDone, partialQty, quantityLeft := ob.processQueue(bestPrice, quantityToTrade)
-		done = append(done, ordersDone...)
-		partial = partialDone
-		partialQuantityProcessed = partialQty
-		quantityToTrade = quantityLeft
-		bestPrice = iter()
+	if proccess {
+		bestPrice := iter()
+		for quantityToTrade.Sign() > 0 && sideToProcess.Len() > 0 && comparator(bestPrice.Price()) {
+			ordersDone, partialDone, partialQty, quantityLeft := ob.processQueue(bestPrice, quantityToTrade)
+			done = append(done, ordersDone...)
+			partial = partialDone
+			partialQuantityProcessed = partialQty
+			quantityToTrade = quantityLeft
+			bestPrice = iter()
+		}
 	}
 
 	if quantityToTrade.Sign() > 0 {
